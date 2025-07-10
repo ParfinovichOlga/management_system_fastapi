@@ -1,0 +1,33 @@
+# Python bytecode and cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Editor/IDE specific files
+.vscode/
+.idea/
+*.swp
+*.bak
+
+# Git related files
+.git/
+.gitignore
+
+# Build artifacts and logs
+dist/
+build/
+*.egg-info/
+logs/
+*.log
+
+# Sensitive or temporary files
+.env
+*.pem
+*.key
+tmp/
