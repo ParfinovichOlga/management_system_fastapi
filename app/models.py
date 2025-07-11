@@ -1,7 +1,6 @@
 from app.backend.db import Base
-from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column, relationship
+from sqlalchemy.orm import mapped_column
 
 
 class User(Base):
@@ -9,8 +8,7 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     email: Mapped[str] = mapped_column(unique=True)
-    hashed_password: Mapped[str] 
-    name: Mapped[str]    
+    hashed_password: Mapped[str]
+    name: Mapped[str]
     is_active: Mapped[bool] = mapped_column(default=True)
-    role: Mapped[str] 
-
+    role: Mapped[str] = mapped_column(default='staff')
