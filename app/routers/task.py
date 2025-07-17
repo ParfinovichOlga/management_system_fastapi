@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import (
+    APIRouter, Depends,
+    Path, HTTPException
+)
 from starlette import status
 from typing import Annotated
 from app.backend.db_depends import get_db
@@ -97,7 +100,7 @@ async def update_task(db: Annotated[AsyncSession, Depends(get_db)],
     assigned_user = await users.get_user(db, update_request.assigned_to)
     if not assigned_user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail='There are no user to assign task'
         )
 
@@ -111,3 +114,21 @@ async def update_task(db: Annotated[AsyncSession, Depends(get_db)],
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Task wasn't found"
         )
+
+
+@router.delete('/{task_id}', status_code=status.HTTP_204_NO_CONTENT)
+async def delete_task(db: Annotated[AsyncSession, Depends(get_db)],
+                      user: Annotated[dict, Depends(get_current_user_strict)],
+                      task_id: Annotated[int, Path(gt=0)]):
+    if not user or user['role'] != Roles.manager.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='You do not have permission to perform this action'
+        )
+    task_to_delete = await tasks.get_task(db=db, task_id=task_id)
+    if not  task_to_delete:
+         raise HTTPException(
+             status_code=status.HTTP_404_NOT_FOUND,
+             detail='Task not found.'
+             )
+    await tasks.delete_task(db, task_id)

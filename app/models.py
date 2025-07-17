@@ -1,11 +1,17 @@
 from app.backend.db import Base
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import ForeignKey, String, Enum, Text, Date
+from sqlalchemy import ForeignKey, String, Enum, Text, Date, DateTime
 from sqlalchemy.sql import text
 
 import enum
 from typing import List
-from datetime import date
+from datetime import date, datetime, timezone
+
+
+class Roles(enum.Enum):
+    admin = 'admin'
+    manager = 'manager'
+    staff = 'staff'
 
 
 class TaskStatus(enum.Enum):
@@ -19,11 +25,17 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     email: Mapped[str] = mapped_column(String(200), unique=True)
-    hashed_password: Mapped[str]
-    name: Mapped[str]
+    hashed_password: Mapped[str] = mapped_column(nullable=False)
+    name: Mapped[str] = mapped_column(nullable=False)
     is_active: Mapped[bool] = mapped_column(default=True)
-    role: Mapped[str] = mapped_column(default='staff')
-    tasks: Mapped[List['Task']] = relationship(back_populates='user')
+    role: Mapped[Roles] = mapped_column(
+        Enum(Roles, name='user_role'), default=Roles.staff,
+        nullable=False, server_default=text("'staff'"))
+    tasks: Mapped[List['Task']] = relationship(back_populates='assigned_user')
+    comments: Mapped[List['Comment']] = relationship(back_populates='author')
+
+    def __str__(self):
+        return self.name
 
 
 class Task(Base):
@@ -40,4 +52,27 @@ class Task(Base):
         server_default=text("'opened'")
     )
     deadline: Mapped[date] = mapped_column(Date)
-    user: Mapped['User'] = relationship(back_populates='tasks')
+    assigned_user: Mapped['User'] = relationship(back_populates='tasks')
+    comments: Mapped[List['Comment']] = relationship(back_populates='task')
+
+    def __str__(self):
+        return self.description
+
+
+class Comment(Base):
+    __tablename__ = 'comment'
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    text: Mapped[str] = mapped_column(Text)
+    date: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    task_id: Mapped[int] = mapped_column(
+        ForeignKey('task.id', ondelete='CASCADE'), nullable=False)
+    author: Mapped['User'] = relationship(back_populates='comments')
+    task: Mapped['Task'] = relationship(back_populates='comments')
+
+    def __str__(self):
+        return self.text

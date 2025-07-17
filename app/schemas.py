@@ -25,12 +25,10 @@ class UserVerification(BaseModel):
 
 
 class CreateTask(BaseModel):
-    description: str
+    description: str = Field(max_length=500)
     deadline: date
 
 
-class UpdateTask(BaseModel):
-    description: str
-    deadline: date
+class UpdateTask(CreateTask):
     status: TaskStatus
     assigned_to: Optional[str] = None

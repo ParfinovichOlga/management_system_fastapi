@@ -42,3 +42,10 @@ async def update_task(db: AsyncSession,
     task.assigned_to = assigned_to if assigned_to else task.assigned_to
     await db.commit()
     return task
+
+
+async def delete_task(db: AsyncSession, task_id: int):
+    task = await get_task(db, task_id)
+    if task:
+        await db.delete(task)
+        await db.commit()
