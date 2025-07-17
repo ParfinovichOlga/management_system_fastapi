@@ -1,11 +1,10 @@
 from fastapi import (
-    APIRouter, Depends, Request,
+    APIRouter, Depends,
     status, HTTPException
 )
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from fastapi.security.utils import get_authorization_scheme_param
 from sqlalchemy import select
-from typing import Annotated, Optional
+from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
 from passlib.context import CryptContext
 
@@ -24,7 +23,8 @@ router = APIRouter(
 
 bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='auth/token')
-oauth2_scheme_public = OAuth2PasswordBearer(tokenUrl='auth/token', auto_error=False)
+oauth2_scheme_public = OAuth2PasswordBearer(
+    tokenUrl='auth/token', auto_error=False)
 
 
 async def authenticate_user(db: Annotated[AsyncSession, Depends(get_db)],
@@ -37,7 +37,7 @@ async def authenticate_user(db: Annotated[AsyncSession, Depends(get_db)],
             detail='Invalid authentication credentials',
             headers={"WWW-Authenticate": "Bearer"}
         )
-    
+
     return user
 
 
@@ -54,7 +54,8 @@ async def create_access_token(
     return jwt.encode(payload, SECRET_KEY, ALGORITM)
 
 
-async def get_current_user_optional(token: Annotated[str, Depends(oauth2_scheme_public)]):
+async def get_current_user_optional(
+        token: Annotated[str, Depends(oauth2_scheme_public)]):
     if not token:
         return None
     try:
@@ -104,10 +105,11 @@ async def get_current_user_optional(token: Annotated[str, Depends(oauth2_scheme_
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Could not validate user'
-        )        
+        )
 
 
-async def get_current_user_strict(token: Annotated[str, Depends(oauth2_scheme)]): 
+async def get_current_user_strict(
+        token: Annotated[str, Depends(oauth2_scheme)]):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITM])
         name: str | None = payload.get('sub')
@@ -156,7 +158,7 @@ async def get_current_user_strict(token: Annotated[str, Depends(oauth2_scheme)])
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Could not validate user'
         )
-        
+
 
 @router.post('/token')
 async def login(db: Annotated[AsyncSession, Depends(get_db)],

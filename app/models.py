@@ -41,4 +41,3 @@ class Task(Base):
     )
     deadline: Mapped[date] = mapped_column(Date)
     user: Mapped['User'] = relationship(back_populates='tasks')
-    

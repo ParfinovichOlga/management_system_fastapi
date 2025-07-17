@@ -1,6 +1,8 @@
 from pydantic import BaseModel, Field, EmailStr
 from enum import Enum
 from datetime import date
+from .models import TaskStatus
+from typing import Optional
 
 
 class Roles(Enum):
@@ -25,3 +27,10 @@ class UserVerification(BaseModel):
 class CreateTask(BaseModel):
     description: str
     deadline: date
+
+
+class UpdateTask(BaseModel):
+    description: str
+    deadline: date
+    status: TaskStatus
+    assigned_to: Optional[str] = None
