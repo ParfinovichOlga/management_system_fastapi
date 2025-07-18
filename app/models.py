@@ -28,9 +28,8 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(nullable=False)
     name: Mapped[str] = mapped_column(nullable=False)
     is_active: Mapped[bool] = mapped_column(default=True)
-    role: Mapped[Roles] = mapped_column(
-        Enum(Roles, name='user_role'), default=Roles.staff,
-        nullable=False, server_default=text("'staff'"))
+    role: Mapped[str] = mapped_column(
+        default='staff', server_default=text("'staff'"))
     tasks: Mapped[List['Task']] = relationship(back_populates='assigned_user')
     comments: Mapped[List['Comment']] = relationship(back_populates='author')
 
@@ -65,7 +64,7 @@ class Comment(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     text: Mapped[str] = mapped_column(Text)
     date: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc))
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     user_id: Mapped[int] = mapped_column(
         ForeignKey('user.id', ondelete='CASCADE'), nullable=False)

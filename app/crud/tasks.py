@@ -1,12 +1,19 @@
 from ..models import Task, TaskStatus
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, insert
+from sqlalchemy.orm import selectinload
 from datetime import date
 from typing import List
 
 
 async def get_task(db: AsyncSession, task_id: int) -> Task:
     task = await db.scalar(select(Task).where(Task.id == task_id))
+    return task
+
+
+async def get_task_with_comments(db: AsyncSession, task_id: int) -> Task:
+    task = await db.scalar(select(Task).options(
+        selectinload(Task.comments)).where(Task.id == task_id))
     return task
 
 

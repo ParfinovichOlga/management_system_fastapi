@@ -1,8 +1,7 @@
-from ..models import User
+from ..models import User, Roles
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, insert
 from ..routers.auth import bcrypt_context
-from ..schemas import Roles
 
 
 async def get_user(db: AsyncSession, id: int):

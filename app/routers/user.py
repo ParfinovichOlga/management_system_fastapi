@@ -10,8 +10,9 @@ from .auth import (
     )
 from app.backend.db_depends import get_db
 
-from ..schemas import CreateUser, UserVerification, Roles
+from ..schemas import CreateUser, UserVerification
 from ..crud import users
+from ..models import Roles
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
