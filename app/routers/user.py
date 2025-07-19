@@ -11,7 +11,7 @@ from .auth import (
 from app.backend.db_depends import get_db
 
 from ..schemas import CreateUser, UserVerification
-from ..crud import users
+from ..crud import users, teams
 from ..models import Roles
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -98,7 +98,17 @@ async def change_user_status(
     if user['role'] == 'admin':
         updated_user = await users.get_user(db, user_id)
         if updated_user:
-            await users.update_user(db=db, id=user_id, role=role.value)
+            if not updated_user.team_id\
+                  or (
+                      updated_user.team_id and not
+                      await teams.check_has_manager(db, updated_user.team_id)
+                     ):
+                await users.update_user(db=db, id=user_id, role=role.value)
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail='You try to add 2 managers at the team'
+                )
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

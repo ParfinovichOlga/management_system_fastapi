@@ -1,7 +1,19 @@
 from pydantic import BaseModel, Field, EmailStr
 from datetime import date
 from .models import TaskStatus
-from typing import Optional
+from typing import Optional, List
+
+
+class UserOut(BaseModel):
+    id: int
+    email: EmailStr
+    name: str
+    is_active: bool
+    role: str
+    team_id: Optional[int]
+
+    class Config:
+        from_attributes = True
 
 
 class CreateUser(BaseModel):
@@ -29,3 +41,20 @@ class UpdateTask(CreateTask):
 
 class RequestedComment(BaseModel):
     text: str = Field(max_length=2000)
+
+
+class TeamOut(BaseModel):
+    id: int
+    name: str
+    members: List[UserOut]
+
+    class Config:
+        from_attributes = True
+
+
+class CreateTeam(BaseModel):
+    name: str = Field(max_length=100)
+
+
+class UsersToAdd(BaseModel):
+    user_ids: List[int]

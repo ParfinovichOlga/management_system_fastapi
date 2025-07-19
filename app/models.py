@@ -20,6 +20,17 @@ class TaskStatus(enum.Enum):
     done = 'done'
 
 
+class Team(Base):
+    __tablename__ = 'team'
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(100))
+    members: Mapped[List['User']] = relationship(back_populates='team')
+
+    def __str__(self):
+        return self.name
+
+
 class User(Base):
     __tablename__ = 'user'
 
@@ -32,6 +43,10 @@ class User(Base):
         default='staff', server_default=text("'staff'"))
     tasks: Mapped[List['Task']] = relationship(back_populates='assigned_user')
     comments: Mapped[List['Comment']] = relationship(back_populates='author')
+    team_id: Mapped['Team'] = mapped_column(
+        ForeignKey('team.id', ondelete='SET NULL'),
+        nullable=True, default=None)
+    team: Mapped['Team'] = relationship(back_populates='members')
 
     def __str__(self):
         return self.name
