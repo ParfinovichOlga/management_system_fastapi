@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routers import auth, user, task, comment, team, evaluation
+from app.routers import auth, user, task, comment, team, evaluation, meeting
 
 
 app = FastAPI()
@@ -10,6 +10,7 @@ app.include_router(task.router)
 app.include_router(comment.router)
 app.include_router(team.router)
 app.include_router(evaluation.router)
+app.include_router(meeting.router)
 
 
 @app.get("/healthy")

@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, EmailStr
-from datetime import date, datetime
+from pydantic import BaseModel, Field, EmailStr, field_validator
+from datetime import date, datetime, timezone
 from .models import TaskStatus
 from typing import Optional, List
 
@@ -79,3 +79,16 @@ class EvaluationOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class CreateMeeting(BaseModel):
+    date: datetime
+    title: str = Field(max_length=200)
+    description: str = Field(max_length=500)
+    participants: List[int] = Field(..., min_items=1)
+
+    @field_validator('date')
+    def validate_future_date(cls, date: datetime):
+        if date < datetime.now(timezone.utc):
+            raise ValueError("Meeting date must be in the future")
+        return date

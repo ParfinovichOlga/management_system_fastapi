@@ -8,12 +8,14 @@ from sqlalchemy import (
     Date,
     DateTime,
     Integer,
-    CheckConstraint
+    CheckConstraint,
+    Table,
+    Column
 )
 from sqlalchemy.sql import text
 
 import enum
-from typing import List
+from typing import List, Optional
 from datetime import date, datetime, timezone
 
 
@@ -27,6 +29,14 @@ class TaskStatus(enum.Enum):
     opened = 'opened'
     in_progress = 'in progress'
     done = 'done'
+
+
+user_meeting = Table(
+    'user_meeting',
+    Base.metadata,
+    Column('user_id', ForeignKey('user.id'), primary_key=True),
+    Column('meeting_id', ForeignKey('meeting.id'), primary_key=True)
+)
 
 
 class Team(Base):
@@ -52,12 +62,16 @@ class User(Base):
         default='staff', server_default=text("'staff'"))
     tasks: Mapped[List['Task']] = relationship(back_populates='assigned_user')
     comments: Mapped[List['Comment']] = relationship(back_populates='author')
-    team_id: Mapped['Team'] = mapped_column(
+    team_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey('team.id', ondelete='SET NULL'),
         nullable=True, default=None)
     team: Mapped['Team'] = relationship(back_populates='members')
     evaluations: Mapped[List['Evaluation']] = relationship(
         back_populates='employee')
+    initiated_meetings: Mapped[List['Meeting']] = relationship(
+        back_populates='initiator')
+    meetings: Mapped[List['Meeting']] = relationship(
+        secondary=user_meeting, back_populates='participants')
 
     def __str__(self):
         return self.name
@@ -80,7 +94,8 @@ class Task(Base):
 
     assigned_user: Mapped['User'] = relationship(back_populates='tasks')
     comments: Mapped[List['Comment']] = relationship(back_populates='task')
-    evaluation: Mapped['Evaluation'] = relationship(back_populates='task')
+    evaluation: Mapped['Evaluation'] = relationship(
+        back_populates='task',  uselist=False)
 
     def __str__(self):
         return self.description
@@ -123,4 +138,22 @@ class Evaluation(Base):
 
     __table_args__ = (
         CheckConstraint('grade >= 1 AND grade <= 5', name='check_grade_range'),
+    )
+
+
+class Meeting(Base):
+    __tablename__ = 'meeting'
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey('user.id', ondelete='CASCADE'), nullable=False
+    )
+    title: Mapped[str] = mapped_column(String(300))
+    description: Mapped[str] = mapped_column(Text)
+    date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    initiator: Mapped['User'] = relationship(
+        back_populates='initiated_meetings', foreign_keys=[user_id])
+    participants: Mapped[List['User']] = relationship(
+        secondary=user_meeting,
+        back_populates='meetings'
     )
