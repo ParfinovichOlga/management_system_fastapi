@@ -57,7 +57,7 @@ async def task_detail(
         return task
 
     raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
+        status_code=status.HTTP_404_NOT_FOUND,
         detail="Task wasn't found"
     )
 
@@ -84,6 +84,24 @@ async def take_task(db: Annotated[AsyncSession, Depends(get_db)],
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Task wasn't found"
         )
+
+
+@router.put('/done/{task_id}', status_code=status.HTTP_204_NO_CONTENT)
+async def mark_as_done(
+        db: Annotated[AsyncSession, Depends(get_db)],
+        user: Annotated[dict, Depends(get_current_user_strict)],
+        task_id: Annotated[int, Path(gt=0)]):
+    task = await tasks.get_task(db, task_id)
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task wasn't found")
+    if task.assigned_to != user['id']:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Only assigned user can complite task'
+        )
+    await tasks.update_task(db=db, task_id=task_id, status='done')
 
 
 @router.put('/{task_id}', status_code=status.HTTP_204_NO_CONTENT)

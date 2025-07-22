@@ -4,7 +4,6 @@ from sqlalchemy.orm import selectinload
 from fastapi import HTTPException, status
 from collections import Counter
 from ..models import Team
-from ..schemas import TeamOut
 from .users import get_user
 from typing import List
 
@@ -30,13 +29,14 @@ async def get_team_with_members(db: AsyncSession, team_id: int):
         select(Team).options(selectinload(Team.members)).where(
             Team.id == team_id
         ))
-    return TeamOut.model_validate(team) if team else None
+    return team
 
 
 async def add_members(db: AsyncSession, team_id: int, members: List[int]):
     team = await get_team_with_members(db, team_id)
     if team:
-        team.members = []
+        for user in team.members:
+            user.team = None
         has_manager = False
         for id in members:
             member = await get_user(db, id)
@@ -57,8 +57,8 @@ async def add_members(db: AsyncSession, team_id: int, members: List[int]):
                         detail='You try to add 2 managers at the team'
                     )
                 has_manager = True
-            else:
-                team.members.append(member)
+
+            member.team = team
         await db.commit()
 
 

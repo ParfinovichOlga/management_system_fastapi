@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, EmailStr
-from datetime import date
+from datetime import date, datetime
 from .models import TaskStatus
 from typing import Optional, List
 
@@ -29,6 +29,14 @@ class UserVerification(BaseModel):
     new_password: str = Field(min_length=8)
 
 
+class TaskOut(BaseModel):
+    description: str
+    deadline: date
+
+    class Config:
+        from_attributes = True
+
+
 class CreateTask(BaseModel):
     description: str = Field(max_length=500)
     deadline: date
@@ -36,7 +44,7 @@ class CreateTask(BaseModel):
 
 class UpdateTask(CreateTask):
     status: Optional[TaskStatus] = None
-    assigned_to: Optional[str] = None
+    assigned_to: Optional[int] = None
 
 
 class RequestedComment(BaseModel):
@@ -58,3 +66,16 @@ class CreateTeam(BaseModel):
 
 class UsersToAdd(BaseModel):
     user_ids: List[int]
+
+
+class CreateEvaluation(BaseModel):
+    grade: int = Field(ge=1, le=5)
+
+
+class EvaluationOut(BaseModel):
+    grade: int
+    date: datetime
+    task: TaskOut
+
+    class Config:
+        from_attributes = True
