@@ -91,4 +91,6 @@ class CreateMeeting(BaseModel):
     def validate_future_date(cls, date: datetime):
         if date < datetime.now(timezone.utc):
             raise ValueError("Meeting date must be in the future")
+
+        date = date.replace(second=0, microsecond=0)
         return date

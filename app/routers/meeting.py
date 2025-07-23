@@ -13,16 +13,33 @@ router = APIRouter(
 )
 
 
+@router.get('/my_meetings', status_code=status.HTTP_200_OK)
+async def get_my_meetings(
+        db: Annotated[AsyncSession, Depends(get_db)],
+        user: Annotated[dict, Depends(get_current_user_strict)]):
+    curr_user_meetings = await meetings.get_user_meetings(db, user['id'])
+    return curr_user_meetings
+
+
 @router.post('/', status_code=status.HTTP_201_CREATED)
 async def create_meeting(
         db: Annotated[AsyncSession, Depends(get_db)],
         user: Annotated[dict, Depends(get_current_user_strict)],
         created_meeting: CreateMeeting):
-    await meetings.add_meeting(db=db, user_id=user['id'],
-                               title=created_meeting.title,
-                               description=created_meeting.description,
-                               date=created_meeting.date,
-                               participants=created_meeting.participants)
+    another_meeting = await meetings.have_meeting(
+        db, user['id'], created_meeting.date
+    )
+    if another_meeting is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"You have another meeting at {another_meeting.date}"
+        )
+    await meetings.add_meeting(
+        db=db, user_id=user['id'],
+        title=created_meeting.title,
+        description=created_meeting.description,
+        date=created_meeting.date,
+        participants=created_meeting.participants)
 
 
 @router.delete('/{meeting_id}', status_code=status.HTTP_204_NO_CONTENT)
