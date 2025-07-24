@@ -1,11 +1,25 @@
 from fastapi import FastAPI
-from app.routers import (
+from .routers import (
     auth, user, task, comment,
     team, evaluation, meeting, calendar
 )
+from starlette.middleware.sessions import SessionMiddleware
+from .admin_views import setup_admin
+from .backend.db import engine
+from config import ADMIN_SECRET_KEY
+from contextlib import asynccontextmanager
+from .create_admin import create_super_admin
 
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await create_super_admin()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
+app.add_middleware(SessionMiddleware, secret_key=ADMIN_SECRET_KEY)
+setup_admin(app, engine)
 
 app.include_router(auth.router)
 app.include_router(user.router)
