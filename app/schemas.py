@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, EmailStr, field_validator
+from pydantic import BaseModel, Field, EmailStr, field_validator, ConfigDict
 from datetime import date, datetime, timezone
 from .models import TaskStatus
 from typing import Optional, List
@@ -12,8 +12,9 @@ class UserOut(BaseModel):
     role: str
     team_id: Optional[int]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True
+    )
 
 
 class CreateUser(BaseModel):
@@ -33,8 +34,9 @@ class TaskOut(BaseModel):
     description: str
     deadline: date
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
 
 
 class CreateTask(BaseModel):
@@ -56,8 +58,9 @@ class TeamOut(BaseModel):
     name: str
     members: List[UserOut]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True
+    )
 
 
 class CreateTeam(BaseModel):
@@ -77,15 +80,16 @@ class EvaluationOut(BaseModel):
     date: datetime
     task: TaskOut
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True
+    )
 
 
 class CreateMeeting(BaseModel):
     date: datetime
     title: str = Field(max_length=200)
     description: str = Field(max_length=500)
-    participants: List[int] = Field(..., min_items=1)
+    participants: List[int] = Field(..., min_length=1)
 
     @field_validator('date')
     def validate_future_date(cls, date: datetime):

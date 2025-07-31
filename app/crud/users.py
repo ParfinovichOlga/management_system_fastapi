@@ -33,3 +33,10 @@ async def update_user(db: AsyncSession, id: int,
     user.role = role if role else user.role
     user.is_active = is_active if is_active else user.is_active
     await db.commit()
+
+
+async def delete_user(db: AsyncSession, user_id: int):
+    user = await get_user(db, user_id)
+    if user:
+        await db.delete(user)
+        await db.commit()

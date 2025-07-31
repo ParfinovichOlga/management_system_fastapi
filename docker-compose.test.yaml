@@ -1,0 +1,35 @@
+services:
+  test_db:
+    container_name: my_project_test_postgres
+    image: postgres
+    env_file:
+      - .test.env
+    environment:
+      - POSTGRES_DB=${DB_TEST_NAME}
+      - POSTGRES_USER=${DB_TEST_USER}
+      - POSTGRES_PASSWORD=${DB_TEST_PASS}
+    ports:
+      - ${DB_TEST_PORT}:5432
+    volumes:
+      - test-db-data:/var/lib/postgresql/data
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_TEST_USER}"]
+      interval: 5s
+      retries: 10
+
+  test_runner:
+    build: ./
+    command: sh -c "pytest -s"
+    depends_on:
+      test_db:
+        condition: service_healthy
+    env_file:
+      - .test.env
+    environment:
+      - DB_HOST=test_db
+    volumes:
+      - .:/app
+
+volumes:
+  test-db-data:

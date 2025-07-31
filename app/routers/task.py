@@ -72,8 +72,7 @@ async def take_task(db: Annotated[AsyncSession, Depends(get_db)],
         if task.status != TaskStatus.opened:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail='You can change the status only for tasks with \
-                        the open status '
+                detail='Only for tasks with open status '
             )
         await tasks.update_task(db=db, task_id=task_id,
                                 status=TaskStatus.in_progress,
@@ -98,7 +97,7 @@ async def mark_as_done(
             detail="Task wasn't found")
     if task.assigned_to != user['id']:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail='Only assigned user can complite task'
         )
     await tasks.update_task(db=db, task_id=task_id, status='done')
