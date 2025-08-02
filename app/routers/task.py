@@ -78,10 +78,15 @@ async def take_task(db: Annotated[AsyncSession, Depends(get_db)],
                                 status=TaskStatus.in_progress,
                                 assigned_to=user.id)
 
+    elif not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task wasn't found"
+        )
     else:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Task wasn't found"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User wasn't found"
         )
 
 
@@ -128,7 +133,7 @@ async def update_task(db: Annotated[AsyncSession, Depends(get_db)],
                                         update_request.assigned_to)
     if not curr_task:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Task wasn't found"
         )
 

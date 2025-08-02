@@ -1,82 +1,8 @@
-from ..routers.auth import get_current_user_strict
-from httpx import AsyncClient, ASGITransport
 from sqlalchemy import select, exists
-from app.main import app
 from fastapi import status
-import pytest_asyncio
 import pytest
 from datetime import date
 from ..models import Task, User, TaskStatus
-
-
-def override_current_user_manager():
-    return {
-        'username': 'test_user',
-        'id': 1,
-        'role': 'manager'
-    }
-
-
-def override_current_user():
-    return {
-        'username': 'test_user',
-        'id': 1,
-        'role': 'staff'
-    }
-
-
-@pytest_asyncio.fixture(scope='function')
-async def async_client():
-    app.dependency_overrides[get_current_user_strict] = override_current_user
-    async with AsyncClient(
-            transport=ASGITransport(app=app),
-            base_url='http://test') as ac:
-        yield ac
-
-
-@pytest_asyncio.fixture(scope='function')
-async def public_client():
-
-    async with AsyncClient(
-            transport=ASGITransport(app=app),
-            base_url='http://test') as ac:
-        yield ac
-
-
-@pytest_asyncio.fixture(scope='function')
-async def test_user(db_session):
-    user = User(
-        name='test_user',
-        hashed_password='test123',
-        email='test@example.com'
-    )
-
-    db_session.add(user)
-    await db_session.commit()
-    yield user
-
-
-@pytest_asyncio.fixture(scope='function')
-async def async_client_manager():
-    app.dependency_overrides[
-        get_current_user_strict
-        ] = override_current_user_manager
-    async with AsyncClient(
-            transport=ASGITransport(app=app),
-            base_url='http://test') as ac:
-        yield ac
-
-
-@pytest_asyncio.fixture(scope='function', autouse=True)
-async def test_task(db_session):
-    task = Task(
-        description='Test task',
-        deadline=date(2025, 8, 16)
-    )
-
-    db_session.add(task)
-    await db_session.commit()
-    yield task
 
 
 class TestManagerTask:
@@ -146,6 +72,18 @@ class TestManagerTask:
         assert updated_task.status.value == payload['status']
 
     @pytest.mark.asyncio
+    async def test_update_task_not_found(
+            self, db_session, async_client_manager):
+        payload = {
+            'description': 'Change task',
+            'deadline': '2025-08-31',
+            'status': 'in progress'
+        }
+        response = await async_client_manager.put(
+            '/task/999', json=payload)
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.asyncio
     async def test_update_task_with_no_user(
             self, async_client_manager, db_session):
         payload = {
@@ -172,6 +110,12 @@ class TestManagerTask:
         assert await db_session.scalar(
             select(exists().where(Task.id == 1))) is False
 
+    @pytest.mark.asyncio
+    async def test_delete_task_not_found(self, async_client_manager):
+        response = await async_client_manager.delete('/task/999')
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {'detail': 'Task not found.'}
+
 
 class TestStaffTasks:
     """"Tests for task endpoints for staff."""
@@ -195,6 +139,18 @@ class TestStaffTasks:
         )
         assert task.status == TaskStatus.in_progress
         assert task.assigned_to == test_user.id
+
+    @pytest.mark.asyncio
+    async def test_take_task_not_found(self, async_client, test_user):
+        response = await async_client.put('/task/take/9999')
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {'detail': "Task wasn't found"}
+
+    @pytest.mark.asyncio
+    async def test_take_task_no_user(self, async_client):
+        response = await async_client.put('/task/take/1')
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {'detail': "User wasn't found"}
 
     @pytest.mark.asyncio
     async def test_take_in_progress_status(
@@ -295,12 +251,49 @@ class TestStaffTasks:
         }
 
 
-@pytest.mark.parametrize('urls', [
-    '/task/tasks',
-    '/task/my_tasks',
-    '/task/1'
-])
-@pytest.mark.asyncio
-async def test_unauthorized_requests(urls, public_client):
-    response = await public_client.get(urls)
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+class TestPublicTasks:
+    """Testing task endpoints without authorization"""
+    @pytest.mark.parametrize('urls', [
+        '/task/tasks',
+        '/task/my_tasks',
+        '/task/1'
+    ])
+    @pytest.mark.asyncio
+    async def test_unauthorized_requests(self, urls, async_public_client):
+        response = await async_public_client.get(urls)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.asyncio
+    async def test_create_task(self, async_public_client):
+        payload = {
+            'description': 'New test task',
+            'deadline': '2025-08-30'
+        }
+        response = await async_public_client.post('/task/', json=payload)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.asyncio
+    async def test_update_task_status_to_in_progress(
+            self, async_public_client):
+        response = await async_public_client.put('/task/take/1')
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.asyncio
+    async def test_mark_task_done(
+            self, async_public_client,
+            test_user, db_session):
+        task = Task(
+            description='Test task 2',
+            deadline=date(2025, 8, 16),
+            status=TaskStatus.in_progress,
+            assigned_to=1
+        )
+        db_session.add(task)
+        await db_session.commit()
+        response = await async_public_client.put('task/done/2')
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.asyncio
+    async def test_delete_task_by_staff(self, async_public_client):
+        response = await async_public_client.delete('task/1')
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED

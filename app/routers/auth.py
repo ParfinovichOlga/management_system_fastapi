@@ -30,7 +30,7 @@ oauth2_scheme_public = OAuth2PasswordBearer(
 async def authenticate_user(db: Annotated[AsyncSession, Depends(get_db)],
                             username: str, password: str):
     user = await db.scalar(select(User).where(User.name == username))
-    if not user or bcrypt_context.verify(password, user.hashed_password)\
+    if not user or not bcrypt_context.verify(password, user.hashed_password)\
             or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -127,19 +127,6 @@ async def get_current_user_strict(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail='No access token supplied'
             )
-        if not isinstance(expire, int):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='Invalid token format'
-            )
-
-        curr_time = datetime.now(timezone.utc).timestamp()
-
-        if expire < curr_time:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='Token expired!'
-            )
 
         return {
             'username': name,
@@ -150,10 +137,10 @@ async def get_current_user_strict(
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='Token expired'
+            detail='Token expired!'
         )
 
-    except jwt.exceptions:
+    except jwt.InvalidTokenError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Could not validate user'

@@ -10,7 +10,7 @@ from .auth import (
     )
 from app.backend.db_depends import get_db
 
-from ..schemas import CreateUser, UserVerification
+from ..schemas import CreateUser, UserVerification, UserOut
 from ..crud import users, teams
 from ..models import Roles
 
@@ -25,8 +25,11 @@ router = APIRouter(
 
 @router.get('/me')
 async def read_current_user(
+        db: Annotated[AsyncSession, Depends(get_db)],
         user: Annotated[dict, Depends(get_current_user_strict)]):
-    return user
+    curr_user = await users.get_user(db, user['id'])
+    if curr_user:
+        return UserOut.model_validate(curr_user)
 
 
 @router.post('/', status_code=status.HTTP_201_CREATED)
@@ -66,7 +69,7 @@ async def change_password(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Error on password change'
         )
-    users.update_user(
+    await users.update_user(
         db=db, id=user['id'], password=user_verification.new_password)
 
 
