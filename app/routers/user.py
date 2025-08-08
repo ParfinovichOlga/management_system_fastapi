@@ -39,6 +39,14 @@ async def create_user(
         user: Annotated[dict, Depends(get_current_user_optional)]):
 
     if not user:
+        existing_user = await users.get_user_by_email(
+            db, create_user.email
+        )
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='User with this email is already registered'
+            )
         await users.create_user(db=db, name=create_user.name,
                                 email=create_user.email,
                                 password=create_user.password)

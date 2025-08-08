@@ -61,6 +61,14 @@ def override_current_user():
     }
 
 
+def override_current_user_admin():
+    return {
+        'username': 'test_user',
+        'id': 2,
+        'role': 'admin'
+    }
+
+
 @pytest_asyncio.fixture(scope='function')
 async def async_client():
     app.dependency_overrides[get_current_user_strict] = override_current_user
@@ -73,6 +81,16 @@ async def async_client():
 @pytest_asyncio.fixture(scope='function')
 async def async_public_client():
 
+    async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url='http://test') as ac:
+        yield ac
+
+
+@pytest_asyncio.fixture(scope='function')
+async def async_client_admin():
+    app.dependency_overrides[
+        get_current_user_strict] = override_current_user_admin
     async with AsyncClient(
             transport=ASGITransport(app=app),
             base_url='http://test') as ac:

@@ -9,6 +9,11 @@ async def get_user(db: AsyncSession, id: int):
     return user
 
 
+async def get_user_by_email(db: AsyncSession, email: str):
+    user = await db.scalar(select(User).where(User.email == email))
+    return user
+
+
 async def create_user(db: AsyncSession, name: str, email: str, password: str):
     await db.execute(insert(User).values(
             name=name, email=email,
