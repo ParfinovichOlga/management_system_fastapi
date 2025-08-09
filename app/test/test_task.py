@@ -34,6 +34,16 @@ class TestManagerTask:
             'comments': []}
 
     @pytest.mark.asyncio
+    async def test_read_task_detail_with_comment(
+            self, async_client_manager,
+            db_session, test_task, test_comment):
+
+        response = await async_client_manager.get('/task/1')
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.json()['comments']) == 1
+        assert response.json()['comments'][0]['text'] == 'Some test comment'
+
+    @pytest.mark.asyncio
     async def test_read_unexisting_task(self, async_client_manager):
         response = await async_client_manager.get('/task/9999999')
         assert response.status_code == status.HTTP_404_NOT_FOUND

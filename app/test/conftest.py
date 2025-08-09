@@ -10,7 +10,7 @@ from ..routers.auth import get_current_user_strict
 from ..routers.auth import bcrypt_context
 from httpx import AsyncClient, ASGITransport
 from datetime import date
-from ..models import Task, User
+from ..models import Task, User, Comment
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -80,7 +80,6 @@ async def async_client():
 
 @pytest_asyncio.fixture(scope='function')
 async def async_public_client():
-
     async with AsyncClient(
             transport=ASGITransport(app=app),
             base_url='http://test') as ac:
@@ -91,6 +90,17 @@ async def async_public_client():
 async def async_client_admin():
     app.dependency_overrides[
         get_current_user_strict] = override_current_user_admin
+    async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url='http://test') as ac:
+        yield ac
+
+
+@pytest_asyncio.fixture(scope='function')
+async def async_client_manager():
+    app.dependency_overrides[
+        get_current_user_strict
+        ] = override_current_user_manager
     async with AsyncClient(
             transport=ASGITransport(app=app),
             base_url='http://test') as ac:
@@ -110,17 +120,6 @@ async def test_user(db_session):
     yield user
 
 
-@pytest_asyncio.fixture(scope='function')
-async def async_client_manager():
-    app.dependency_overrides[
-        get_current_user_strict
-        ] = override_current_user_manager
-    async with AsyncClient(
-            transport=ASGITransport(app=app),
-            base_url='http://test') as ac:
-        yield ac
-
-
 @pytest_asyncio.fixture(scope='function', autouse=True)
 async def test_task(db_session):
     task = Task(
@@ -131,3 +130,16 @@ async def test_task(db_session):
     db_session.add(task)
     await db_session.commit()
     yield task
+
+
+@pytest_asyncio.fixture(scope='function')
+async def test_comment(db_session, test_task, test_user):
+    comment = Comment(
+        text='Some test comment',
+        user_id=1,
+        task_id=1
+    )
+
+    db_session.add(comment)
+    await db_session.commit()
+    yield comment
