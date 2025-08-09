@@ -9,8 +9,11 @@ from ..backend.db_depends import get_db
 from ..routers.auth import get_current_user_strict
 from ..routers.auth import bcrypt_context
 from httpx import AsyncClient, ASGITransport
-from datetime import date
-from ..models import Task, User, Comment
+from datetime import date, datetime
+from ..models import (
+    Task, User, Comment,
+    TaskStatus, Evaluation
+)
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -48,7 +51,7 @@ async def override_get_session(db_session):
 def override_current_user_manager():
     return {
         'username': 'test_user',
-        'id': 1,
+        'id': 3,
         'role': 'manager'
     }
 
@@ -133,6 +136,28 @@ async def test_task(db_session):
 
 
 @pytest_asyncio.fixture(scope='function')
+async def test_done_tasks(db_session, test_user):
+    task2 = Task(
+        description='Test task 1',
+        deadline=date(2025, 8, 16),
+        assigned_to=1,
+        status=TaskStatus.done
+    )
+
+    task3 = Task(
+        description='Test task 2',
+        deadline=date(2025, 8, 16),
+        assigned_to=1,
+        status=TaskStatus.done
+    )
+
+    db_session.add(task2)
+    db_session.add(task3)
+    await db_session.commit()
+    yield
+
+
+@pytest_asyncio.fixture(scope='function')
 async def test_comment(db_session, test_task, test_user):
     comment = Comment(
         text='Some test comment',
@@ -143,3 +168,23 @@ async def test_comment(db_session, test_task, test_user):
     db_session.add(comment)
     await db_session.commit()
     yield comment
+
+
+@pytest_asyncio.fixture(scope='function')
+async def test_evaluations(db_session, test_user, test_done_tasks):
+    ev1 = Evaluation(
+        grade=5,
+        task_id=2,
+        user_id=1,
+        date=datetime(year=2025, month=8, day=9)
+    )
+    ev2 = Evaluation(
+        grade=2,
+        task_id=3,
+        user_id=1,
+        date=datetime(year=2025, month=7, day=31)
+    )
+    db_session.add(ev1)
+    db_session.add(ev2)
+    await db_session.commit()
+    yield

@@ -31,7 +31,7 @@ async def get_user_evaluations(
                 func.date(Evaluation.date) >= start,
                 func.date(Evaluation.date) <= end
                 )
-        )
+        ).order_by('date')
     )
     evaluations = result.all()
 
@@ -46,4 +46,4 @@ async def get_user_evaluations(
         )
     )
 
-    return evaluations, round(avg_grade, 1)
+    return evaluations, round(avg_grade, 1) if avg_grade else 0
