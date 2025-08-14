@@ -14,6 +14,12 @@ async def get_team(db: AsyncSession, team_id: int):
     return team
 
 
+async def get_team_by_name(db: AsyncSession, name: str):
+    team = await db.scalar(
+        select(Team).where(Team.name == name))
+    return team
+
+
 async def create_team(db: AsyncSession, name: str):
     await db.execute(insert(Team).values(name=name))
     await db.commit()
@@ -35,9 +41,8 @@ async def get_team_with_members(db: AsyncSession, team_id: int):
 async def add_members(db: AsyncSession, team_id: int, members: List[int]):
     team = await get_team_with_members(db, team_id)
     if team:
-        for user in team.members:
-            user.team = None
         has_manager = False
+        new_members = []
         for id in members:
             member = await get_user(db, id)
             if not member:
@@ -45,7 +50,7 @@ async def add_members(db: AsyncSession, team_id: int, members: List[int]):
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f'User with {id} id not found'
                 )
-            elif member.team_id and member.team_id != team_id:
+            elif member.team_id:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f'User with {id} is already in {member.team} team'
@@ -58,7 +63,9 @@ async def add_members(db: AsyncSession, team_id: int, members: List[int]):
                     )
                 has_manager = True
 
-            member.team = team
+            new_members.append(member)
+        team.members.clear()
+        team.members.extend(new_members)
         await db.commit()
 
 

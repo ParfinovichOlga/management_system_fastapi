@@ -66,6 +66,20 @@ class TeamOut(BaseModel):
 class CreateTeam(BaseModel):
     name: str = Field(max_length=100)
 
+    @field_validator('name', mode='before')
+    @classmethod
+    def process_name(cls, name: str):
+        name = name.strip()
+        if not name:
+            raise ValueError("Name cannot be empty")
+
+        name = name.split()
+        name[0] = name[0].title().strip()
+        for i in range(1, len(name)):
+            name[i] = name[i].lower().strip()
+        name = ' '.join(name)
+        return name
+
 
 class UsersToAdd(BaseModel):
     user_ids: List[int]

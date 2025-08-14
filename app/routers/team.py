@@ -24,6 +24,12 @@ async def add_team(
             status_code=status.HTTP_403_FORBIDDEN,
             detail='You do not have permission to perform this action'
         )
+    team = await teams.get_team_by_name(db, created_team.name)
+    if team is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Team with this name already exists'
+        )
     await teams.create_team(db, created_team.name)
 
 
@@ -45,7 +51,6 @@ async def get_user_team(
         user: Annotated[dict, Depends(get_current_user_strict)]):
 
     user_model = await users.get_user(db, user['id'])
-    print(user_model.name, user_model.team_id, type(user_model.team_id))
     if user_model:
         team = await teams.get_team_with_members(db, user_model.team_id)
         return TeamOut.model_validate(team) if team else None
@@ -78,7 +83,7 @@ async def add_memebers_to_team(
             status_code=status.HTTP_403_FORBIDDEN,
             detail='You do not have permission to perform this action'
         )
-    team = await teams.get_team(db, team_id)
+    team = await teams.get_team_with_members(db, team_id)
     if not team:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -87,12 +92,12 @@ async def add_memebers_to_team(
     await teams.add_members(db, team_id, memebers.user_ids)
 
 
-@router.put('{team_id}/{name}', status_code=status.HTTP_204_NO_CONTENT)
+@router.put('/{team_id}/change_name', status_code=status.HTTP_204_NO_CONTENT)
 async def update_team_name(
         db: Annotated[AsyncSession, Depends(get_db)],
         user: Annotated[dict, Depends(get_current_user_strict)],
         team_id: Annotated[int, Path(gt=0)],
-        name: Annotated[str, Path(max_length=50)]):
+        update_team: CreateTeam):
     if user['role'] != 'admin':
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -104,7 +109,13 @@ async def update_team_name(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Team not found'
         )
-    team.name = name
+    team_with_this_name = await teams.get_team_by_name(db, update_team.name)
+    if team_with_this_name is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Team with this name already exists'
+        )
+    team.name = update_team.name
     await db.commit()
 
 

@@ -12,7 +12,7 @@ from httpx import AsyncClient, ASGITransport
 from datetime import date, datetime
 from ..models import (
     Task, User, Comment,
-    TaskStatus, Evaluation
+    TaskStatus, Evaluation, Team
 )
 
 
@@ -187,4 +187,17 @@ async def test_evaluations(db_session, test_user, test_done_tasks):
     db_session.add(ev1)
     db_session.add(ev2)
     await db_session.commit()
+    yield
+
+
+@pytest_asyncio.fixture(scope='function')
+async def test_teams(db_session, test_user):
+    team1 = Team(name='Test team 1')
+    team2 = Team(name='Test team 2')
+    db_session.add(team1)
+    db_session.add(team2)
+    await db_session.commit()
+    test_user.team = team2
+    await db_session.commit()
+
     yield

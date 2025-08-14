@@ -43,7 +43,7 @@ class Team(Base):
     __tablename__ = 'team'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(100))
+    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     members: Mapped[List['User']] = relationship(back_populates='team')
 
     def __str__(self):
