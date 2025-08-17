@@ -3,7 +3,7 @@ from fastapi import HTTPException, status
 from ..models import Meeting, user_meeting
 from .users import get_user
 from typing import List
-from sqlalchemy import select, and_, func
+from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload
 from datetime import datetime, timedelta
 
@@ -47,7 +47,7 @@ async def get_user_meetings(db: AsyncSession, user_id: int):
         select(Meeting).join(user_meeting).where(
             and_(
                 user_meeting.c.user_id == user_id,
-                func.date(Meeting.date) >= datetime.now().date()
+                Meeting.date >= datetime.now().date()
             )
         ).options(selectinload(Meeting.participants))
     )

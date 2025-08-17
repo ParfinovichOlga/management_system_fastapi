@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Path, HTTPException, status
 from ..backend.db_depends import get_db
 from .auth import get_current_user_strict
-from ..schemas import CreateMeeting
+from ..schemas import CreateMeeting, MeetingOut
 from ..crud import meetings
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
@@ -18,7 +18,7 @@ async def get_my_meetings(
         db: Annotated[AsyncSession, Depends(get_db)],
         user: Annotated[dict, Depends(get_current_user_strict)]):
     curr_user_meetings = await meetings.get_user_meetings(db, user['id'])
-    return curr_user_meetings
+    return [MeetingOut.model_validate(m) for m in curr_user_meetings]
 
 
 @router.post('/', status_code=status.HTTP_201_CREATED)
@@ -48,6 +48,11 @@ async def cancel_meeting(
         user: Annotated[dict, Depends(get_current_user_strict)],
         meeting_id: Annotated[int, Path(gt=0)]):
     canceled_meeting = await meetings.get_meeting(db, meeting_id)
+    if not canceled_meeting:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Meeting not found'
+        )
     if canceled_meeting.user_id != user['id']:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

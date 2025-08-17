@@ -17,6 +17,15 @@ class UserOut(BaseModel):
     )
 
 
+class UserOutForMeeting(BaseModel):
+    email: EmailStr
+    name: str
+
+    model_config = ConfigDict(
+        from_attributes=True
+    )
+
+
 class CreateUser(BaseModel):
     email: EmailStr
     password: str = Field(
@@ -112,3 +121,15 @@ class CreateMeeting(BaseModel):
 
         date = date.replace(second=0, microsecond=0)
         return date
+
+
+class MeetingOut(BaseModel):
+    id: int
+    title: str
+    description: str
+    date: datetime
+    participants: List[UserOutForMeeting]
+
+    model_config = ConfigDict(
+        from_attributes=True
+    )

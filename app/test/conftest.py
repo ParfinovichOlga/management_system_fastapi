@@ -12,7 +12,7 @@ from httpx import AsyncClient, ASGITransport
 from datetime import date, datetime
 from ..models import (
     Task, User, Comment,
-    TaskStatus, Evaluation, Team
+    TaskStatus, Evaluation, Team, Meeting
 )
 
 
@@ -50,7 +50,7 @@ async def override_get_session(db_session):
 
 def override_current_user_manager():
     return {
-        'username': 'test_user',
+        'username': 'test_user3',
         'id': 3,
         'role': 'manager'
     }
@@ -66,7 +66,7 @@ def override_current_user():
 
 def override_current_user_admin():
     return {
-        'username': 'test_user',
+        'username': 'test_user2',
         'id': 2,
         'role': 'admin'
     }
@@ -118,6 +118,32 @@ async def test_user(db_session):
         email='test@example.com'
     )
 
+    db_session.add(user)
+    await db_session.commit()
+    yield user
+
+
+@pytest_asyncio.fixture(scope='function')
+async def test_user2(db_session):
+    user = User(
+        name='test_user2',
+        hashed_password=bcrypt_context.hash('test123'),
+        email='test2@example.com',
+        role='admin'
+    )
+    db_session.add(user)
+    await db_session.commit()
+    yield user
+
+
+@pytest_asyncio.fixture(scope='function')
+async def test_user3(db_session):
+    user = User(
+        name='test_user3',
+        hashed_password=bcrypt_context.hash('test123'),
+        email='test3@example.com',
+        role='manager'
+    )
     db_session.add(user)
     await db_session.commit()
     yield user
@@ -199,5 +225,26 @@ async def test_teams(db_session, test_user):
     await db_session.commit()
     test_user.team = team2
     await db_session.commit()
+    yield
 
+
+@pytest_asyncio.fixture(scope='function')
+async def test_meetings(db_session, test_user, test_user2, test_user3):
+    meeting1 = Meeting(
+        user_id=1,
+        title='Meeting example title',
+        description='Example meeting description',
+        date=datetime(2025, 8, 31, 14, 30),
+        participants=[test_user, test_user2]
+    )
+    meeting2 = Meeting(
+        user_id=1,
+        title='Meeting example title',
+        description='Example meeting description',
+        date=datetime(2025, 9, 1, 15, 30),
+        participants=[test_user, test_user3]
+    )
+    db_session.add(meeting1)
+    db_session.add(meeting2)
+    await db_session.commit()
     yield
