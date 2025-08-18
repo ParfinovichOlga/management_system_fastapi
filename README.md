@@ -36,4 +36,4 @@ All-in-one platform to organize your team, tasks, and meetings.
 
 - See the API Swagger documentation on [http://localhost:8001/docs](http://localhost:8001/docs) when the Docker container is running
 - Admin panel: [http://localhost:8001/admin/](http://localhost:8001/admin/)
-- Access pgadmin at at http://localhost:5050
+- Access pgadmin at http://localhost:5050
