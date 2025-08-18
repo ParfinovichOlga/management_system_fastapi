@@ -204,3 +204,11 @@ class TestAuthenticatedAdminUser:
             User.id == 1
         ))
         assert updated_user.role == 'manager'
+
+    @pytest.mark.asyncio
+    async def test_change_user_invalid_role(
+            self, async_client_admin, test_user, db_session):
+        response = await async_client_admin.put('user/role/boss?user_id=1')
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.json()['detail'][0]['msg'] == \
+            "Input should be 'admin', 'manager' or 'staff'"
