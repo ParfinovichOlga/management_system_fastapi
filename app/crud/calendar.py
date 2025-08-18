@@ -1,16 +1,19 @@
 from ..models import Task, Meeting, user_meeting
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, func, extract
-from datetime import datetime, timezone
+from sqlalchemy import select, and_
+from datetime import datetime, timezone, timedelta
 
 
 async def get_daily_events(db: AsyncSession, user_id: int):
-    today = datetime.now(timezone.utc).date()
+    now = datetime.now(timezone.utc)
+    start = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+    end = start + timedelta(days=1)
     tasks_for_today = await db.scalars(
         select(Task).where(
             and_(
                 Task.assigned_to == user_id,
-                Task.deadline == today
+                Task.deadline >= start,
+                Task.deadline < end
             )
         )
     )
@@ -18,7 +21,8 @@ async def get_daily_events(db: AsyncSession, user_id: int):
         select(Meeting).join(user_meeting).where(
             and_(
                 user_meeting.c.user_id == user_id,
-                func.date(Meeting.date) == today
+                Meeting.date >= start,
+                Meeting.date < end
             )
         )
     )
@@ -26,14 +30,19 @@ async def get_daily_events(db: AsyncSession, user_id: int):
 
 
 async def get_monthly_events(db: AsyncSession, user_id: int):
-    curr_month = datetime.now(timezone.utc).month
-    curr_year = datetime.now().year
+    now = datetime.now(timezone.utc)
+    start = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
+
+    if now.month == 12:
+        end = datetime(now.year + 1, 1, 1, tzinfo=timezone.utc)
+    else:
+        end = datetime(now.year, now.month + 1, 1, tzinfo=timezone.utc)
     tasks_for_month = await db.scalars(
         select(Task).where(
             and_(
                 Task.assigned_to == user_id,
-                extract('month', Task.deadline) == curr_month,
-                extract('year', Task.deadline) == curr_year
+                Task.deadline >= start,
+                Task.deadline < end
             )
         ).order_by(Task.deadline)
     )
@@ -42,8 +51,8 @@ async def get_monthly_events(db: AsyncSession, user_id: int):
         select(Meeting).join(user_meeting).where(
             and_(
                 user_meeting.c.user_id == user_id,
-                extract('month', Meeting.date) == curr_month,
-                extract('year', Meeting.date) == curr_year
+                Meeting.date >= start,
+                Meeting.date < end
             )
         ).order_by(Meeting.date)
     )
