@@ -1,14 +1,11 @@
 from sqladmin import ModelView, Admin
-from .models import (
-    User, Task, Meeting,
-    Comment, Evaluation, Team
-)
+from .models import User, Task, Meeting, Comment, Evaluation, Team
 from sqladmin.authentication import AuthenticationBackend
 from starlette.requests import Request
 from sqlalchemy import select
 from .backend.db import async_session
 from passlib.hash import bcrypt
-from config import ADMIN_SECRET_KEY
+from config import config
 
 
 class AdminAuth(AuthenticationBackend):
@@ -20,8 +17,11 @@ class AdminAuth(AuthenticationBackend):
         async with async_session() as db:
             user = await db.scalar(select(User).where(User.name == name))
 
-            if user and bcrypt.verify(
-                    password, user.hashed_password) and user.role == 'admin':
+            if (
+                user
+                and bcrypt.verify(password, user.hashed_password)
+                and user.role == "admin"
+            ):
                 request.session.update({"user_id": user.id})
                 return True
         return False
@@ -40,8 +40,14 @@ class AdminAuth(AuthenticationBackend):
 
 
 class UserAdmin(ModelView, model=User):
-    column_list = [User.id, User.name, User.email,
-                   User.role, User.is_active, User.team_id]
+    column_list = [
+        User.id,
+        User.name,
+        User.email,
+        User.role,
+        User.is_active,
+        User.team_id,
+    ]
     column_searchable_list = [User.name, User.email]
     column_sortable_list = [User.id, User.name, User.team_id]
     form_excluded_columns = [User.tasks, User.meetings]
@@ -58,8 +64,13 @@ class TaskAdmin(ModelView, model=Task):
 
 
 class MeetingAdmin(ModelView, model=Meeting):
-    column_list = [Meeting.id, Meeting.title,
-                   Meeting.date, Meeting.user_id, Meeting.participants]
+    column_list = [
+        Meeting.id,
+        Meeting.title,
+        Meeting.date,
+        Meeting.user_id,
+        Meeting.participants,
+    ]
     column_sortable_list = [Meeting.date]
     column_searchable_list = [Meeting.date, Meeting.title, Meeting.user_id]
     name_plural = "Meetings"
@@ -71,8 +82,12 @@ class MeetingAdmin(ModelView, model=Meeting):
 
 class CommentAdmin(ModelView, model=Comment):
     column_list = [
-        Comment.id, Comment.author,
-        Comment.date, Comment.task_id, Comment.text]
+        Comment.id,
+        Comment.author,
+        Comment.date,
+        Comment.task_id,
+        Comment.text,
+    ]
     column_sortable_list = [Comment.date, Comment.id]
     column_searchable_list = [Comment.task_id]
 
@@ -81,8 +96,11 @@ class CommentAdmin(ModelView, model=Comment):
 
 class EvaluationAdmin(ModelView, model=Evaluation):
     column_list = [
-        Evaluation.id, Evaluation.date, Evaluation.grade,
-        Evaluation.task, Evaluation.employee
+        Evaluation.id,
+        Evaluation.date,
+        Evaluation.grade,
+        Evaluation.task,
+        Evaluation.employee,
     ]
     column_sortable_list = [Evaluation.date]
     column_searchable_list = [Evaluation.employee, Evaluation.task]
@@ -90,15 +108,13 @@ class EvaluationAdmin(ModelView, model=Evaluation):
 
 
 class TeamAdmin(ModelView, model=Team):
-    column_list = [
-        Team.id, Team.name, Team.members
-    ]
+    column_list = [Team.id, Team.name, Team.members]
     column_sortable_list = [Team.id]
     column_searchable_list = [Team.name]
     name_plural = "Teams"
 
 
-auth_backend = AdminAuth(secret_key=ADMIN_SECRET_KEY)
+auth_backend = AdminAuth(secret_key=config.ADMIN_SECRET_KEY)
 
 
 def setup_admin(app, engine):

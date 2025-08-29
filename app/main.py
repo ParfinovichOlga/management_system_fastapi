@@ -1,12 +1,9 @@
 from fastapi import FastAPI
-from .routers import (
-    auth, user, task, comment,
-    team, evaluation, meeting, calendar
-)
+from .routers import auth, user, task, comment, team, evaluation, meeting, calendar
 from starlette.middleware.sessions import SessionMiddleware
 from .admin_views import setup_admin
 from .backend.db import engine
-from config import ADMIN_SECRET_KEY
+from config import config
 from contextlib import asynccontextmanager
 from .create_admin import create_super_admin
 
@@ -18,7 +15,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-app.add_middleware(SessionMiddleware, secret_key=ADMIN_SECRET_KEY)
+app.add_middleware(SessionMiddleware, secret_key=config.ADMIN_SECRET_KEY)
 setup_admin(app, engine)
 
 app.include_router(auth.router)
@@ -33,4 +30,4 @@ app.include_router(calendar.router)
 
 @app.get("/healthy")
 async def check_healthy():
-    return {'is_healthy': True}
+    return {"is_healthy": True}

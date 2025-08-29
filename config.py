@@ -1,15 +1,22 @@
-import os
-from dotenv import load_dotenv
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import EmailStr
 
-load_dotenv()
 
-DATABASE_URL = os.environ.get('DATABASE_URL')
-SECRET_KEY = os.environ.get('SECRET_KEY')
-ALGORITM = os.environ.get('ALGORITM')
-ADMIN_SECRET_KEY = os.environ.get('ADMIN_SECRET_KEY')
+class Settings(BaseSettings):
+    DATABASE_URL: str
+    SECRET_KEY: str
+    ALGORITHM: str
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 5
+    REFRESH_TOKEN_EXPIRE_MINUTES: int = 43200
+    REDIS_HOST: str
+    REDIS_PORT: int
+    ADMIN_SECRET_KEY: str
+    ADMIN_EMAIL: EmailStr
+    ADMIN_PASSWORD: str
+    ADMIN_NAME: str
+    MODE: str
 
-ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL')
-ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
-ADMIN_NAME = os.environ.get('ADMIN_NAME')
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-MODE = os.environ.get('MODE')
+
+config = Settings()

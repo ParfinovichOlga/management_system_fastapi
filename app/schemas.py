@@ -4,6 +4,12 @@ from .models import TaskStatus
 from typing import Optional, List
 
 
+class TokenInfo(BaseModel):
+    access_token: str
+    refresh_token: Optional[str] = None
+    token_type: str = "Bearer"
+
+
 class UserOut(BaseModel):
     id: int
     email: EmailStr
@@ -12,26 +18,20 @@ class UserOut(BaseModel):
     role: str
     team_id: Optional[int]
 
-    model_config = ConfigDict(
-        from_attributes=True
-    )
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserOutForMeeting(BaseModel):
     email: EmailStr
     name: str
 
-    model_config = ConfigDict(
-        from_attributes=True
-    )
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CreateUser(BaseModel):
     email: EmailStr
-    password: str = Field(
-        min_length=8, examples=['Enter your password']
-        )
-    name: str = Field(max_length=150, examples=['Enter your name'])
+    password: str = Field(min_length=8, examples=["Enter your password"])
+    name: str = Field(max_length=150, examples=["Enter your name"])
 
 
 class UserVerification(BaseModel):
@@ -67,15 +67,13 @@ class TeamOut(BaseModel):
     name: str
     members: List[UserOut]
 
-    model_config = ConfigDict(
-        from_attributes=True
-    )
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CreateTeam(BaseModel):
     name: str = Field(max_length=100)
 
-    @field_validator('name', mode='before')
+    @field_validator("name", mode="before")
     @classmethod
     def process_name(cls, name: str):
         name = name.strip()
@@ -86,7 +84,7 @@ class CreateTeam(BaseModel):
         name[0] = name[0].title().strip()
         for i in range(1, len(name)):
             name[i] = name[i].lower().strip()
-        name = ' '.join(name)
+        name = " ".join(name)
         return name
 
 
@@ -103,9 +101,7 @@ class EvaluationOut(BaseModel):
     date: datetime
     task: TaskOut
 
-    model_config = ConfigDict(
-        from_attributes=True
-    )
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CreateMeeting(BaseModel):
@@ -114,7 +110,7 @@ class CreateMeeting(BaseModel):
     description: str = Field(max_length=500)
     participants: List[int] = Field(..., min_length=1)
 
-    @field_validator('date')
+    @field_validator("date")
     def validate_future_date(cls, date: datetime):
         if date < datetime.now(timezone.utc):
             raise ValueError("Meeting date must be in the future")
@@ -130,6 +126,4 @@ class MeetingOut(BaseModel):
     date: datetime
     participants: List[UserOutForMeeting]
 
-    model_config = ConfigDict(
-        from_attributes=True
-    )
+    model_config = ConfigDict(from_attributes=True)
