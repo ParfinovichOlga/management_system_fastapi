@@ -34,6 +34,15 @@ class CreateUser(BaseModel):
     name: str = Field(max_length=150, examples=["Enter your name"])
 
 
+class UpdateUser(BaseModel):
+    id: int
+    email: Optional[EmailStr]
+    password: str = Field(default=None, min_length=8, examples=["Enter your password"])
+    name: str = Field(default=None, max_length=150, examples=["Enter your name"])
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
 class UserVerification(BaseModel):
     password: str
     new_password: str = Field(min_length=8)

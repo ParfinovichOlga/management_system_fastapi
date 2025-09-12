@@ -1,137 +1,136 @@
 from fastapi import APIRouter, Depends, HTTPException, Path
 from starlette import status
-from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
-from ..backend.db_depends import get_db
+from app.dependencies import get_team_repository, get_user_repository
+from app.repositories.abstract.team import TeamRepository
+from app.repositories.abstract.user import UserRepository
 from ..routers.auth import get_current_user_strict
 from ..schemas import CreateTeam, UsersToAdd, TeamOut
-from ..crud import teams, users
+from ..services import teams, users
 
 
-router = APIRouter(
-    prefix='/team',
-    tags=['team']
-)
+router = APIRouter(prefix="/team", tags=["team"])
 
 
-@router.post('/', status_code=status.HTTP_201_CREATED)
+@router.post("/", status_code=status.HTTP_201_CREATED)
 async def add_team(
-        db: Annotated[AsyncSession, Depends(get_db)],
-        user: Annotated[dict, Depends(get_current_user_strict)],
-        created_team: CreateTeam):
-    if not user['role'] == 'admin':
+    repo: Annotated[TeamRepository, Depends(get_team_repository)],
+    user: Annotated[dict, Depends(get_current_user_strict)],
+    created_team: CreateTeam,
+):
+    team_service = teams.TeamService(repo)
+    if not user["role"] == "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail='You do not have permission to perform this action'
+            detail="You do not have permission to perform this action",
         )
-    team = await teams.get_team_by_name(db, created_team.name)
+    team = await team_service.get_team_by_name(created_team.name)
     if team is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Team with this name already exists'
+            detail="Team with this name already exists",
         )
-    await teams.create_team(db, created_team.name)
+    await team_service.create_team(created_team.name)
 
 
-@router.get('/teams', status_code=status.HTTP_200_OK)
+@router.get("/teams", status_code=status.HTTP_200_OK)
 async def get_all_teams(
-        db: Annotated[AsyncSession, Depends(get_db)],
-        user: Annotated[dict, Depends(get_current_user_strict)]):
-    if not user['role'] == 'admin':
+    repo: Annotated[TeamRepository, Depends(get_team_repository)],
+    user: Annotated[dict, Depends(get_current_user_strict)],
+):
+    team_service = teams.TeamService(repo)
+    if not user["role"] == "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail='You do not have permission to perform this action'
+            detail="You do not have permission to perform this action",
         )
-    return await teams.get_teams(db)
+    return await team_service.get_teams()
 
 
-@router.get('/my_team', status_code=status.HTTP_200_OK)
+@router.get("/my_team", status_code=status.HTTP_200_OK)
 async def get_user_team(
-        db: Annotated[AsyncSession, Depends(get_db)],
-        user: Annotated[dict, Depends(get_current_user_strict)]):
-
-    user_model = await users.get_user(db, user['id'])
+    repo: Annotated[TeamRepository, Depends(get_team_repository)],
+    user_repo: Annotated[UserRepository, Depends(get_user_repository)],
+    user: Annotated[dict, Depends(get_current_user_strict)],
+):
+    team_service = teams.TeamService(repo)
+    user_service = users.UserService(user_repo)
+    user_model = await user_service.get_user(user["id"])
     if user_model:
-        team = await teams.get_team_with_members(db, user_model.team_id)
+        team = await team_service.get_team_with_members(user_model.team_id)
         return TeamOut.model_validate(team) if team else None
 
 
-@router.get('/{team_id}', status_code=status.HTTP_200_OK)
+@router.get("/{team_id}", status_code=status.HTTP_200_OK)
 async def get_team_detail(
-        db: Annotated[AsyncSession, Depends(get_db)],
-        user: Annotated[dict, Depends(get_current_user_strict)],
-        team_id: Annotated[int, Path(gt=0)]):
-    if user['role'] == 'admin':
-        team = await teams.get_team_with_members(db, team_id)
+    repo: Annotated[TeamRepository, Depends(get_team_repository)],
+    user: Annotated[dict, Depends(get_current_user_strict)],
+    team_id: Annotated[int, Path(gt=0)],
+):
+    team_service = teams.TeamService(repo)
+    if user["role"] == "admin":
+        team = await team_service.get_team_with_members(team_id)
         return TeamOut.model_validate(team) if team else None
     else:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail='You do not have permission to perform this action'
+            detail="You do not have permission to perform this action",
         )
 
 
-@router.put('/{team_id}', status_code=status.HTTP_204_NO_CONTENT)
+@router.put("/{team_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def add_memebers_to_team(
-            db: Annotated[AsyncSession, Depends(get_db)],
-            user: Annotated[dict, Depends(get_current_user_strict)],
-            memebers: UsersToAdd,
-            team_id: Annotated[int, Path(gt=0)]
+    repo: Annotated[TeamRepository, Depends(get_team_repository)],
+    user_repo: Annotated[UserRepository, Depends(get_user_repository)],
+    user: Annotated[dict, Depends(get_current_user_strict)],
+    memebers: UsersToAdd,
+    team_id: Annotated[int, Path(gt=0)],
 ):
-    if user['role'] != 'admin':
+    team_service = teams.TeamService(repo)
+    if user["role"] != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail='You do not have permission to perform this action'
+            detail="You do not have permission to perform this action",
         )
-    team = await teams.get_team_with_members(db, team_id)
+    team = await team_service.get_team_with_members(team_id)
     if not team:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Team not found'
+            status_code=status.HTTP_404_NOT_FOUND, detail="Team not found"
         )
-    await teams.add_members(db, team_id, memebers.user_ids)
+    await team_service.add_members(team_id, memebers.user_ids, user_repo)
 
 
-@router.put('/{team_id}/change_name', status_code=status.HTTP_204_NO_CONTENT)
+@router.put("/{team_id}/change_name", status_code=status.HTTP_204_NO_CONTENT)
 async def update_team_name(
-        db: Annotated[AsyncSession, Depends(get_db)],
-        user: Annotated[dict, Depends(get_current_user_strict)],
-        team_id: Annotated[int, Path(gt=0)],
-        update_team: CreateTeam):
-    if user['role'] != 'admin':
+    repo: Annotated[TeamRepository, Depends(get_team_repository)],
+    user: Annotated[dict, Depends(get_current_user_strict)],
+    team_id: Annotated[int, Path(gt=0)],
+    update_team: CreateTeam,
+):
+    team_service = teams.TeamService(repo)
+    if user["role"] != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail='You do not have permission to perform this action'
+            detail="You do not have permission to perform this action",
         )
-    team = await teams.get_team(db, team_id)
-    if not team:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Team not found'
-        )
-    team_with_this_name = await teams.get_team_by_name(db, update_team.name)
-    if team_with_this_name is not None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Team with this name already exists'
-        )
-    team.name = update_team.name
-    await db.commit()
+    await team_service.update_team_name(team_id, update_team.name)
 
 
-@router.delete('/{team_id}', status_code=status.HTTP_204_NO_CONTENT)
-async def delete_team(db: Annotated[AsyncSession, Depends(get_db)],
-                      user: Annotated[dict, Depends(get_current_user_strict)],
-                      team_id: Annotated[int, Path(gt=0)]):
-    if not user or user['role'] != 'admin':
+@router.delete("/{team_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_team(
+    repo: Annotated[TeamRepository, Depends(get_team_repository)],
+    user: Annotated[dict, Depends(get_current_user_strict)],
+    team_id: Annotated[int, Path(gt=0)],
+):
+    team_service = teams.TeamService(repo)
+    if not user or user["role"] != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail='You do not have permission to perform this action'
+            detail="You do not have permission to perform this action",
         )
-    team_to_delete = await teams.get_team(db, team_id)
+    team_to_delete = await team_service.get_team(team_id)
     if not team_to_delete:
         raise HTTPException(
-             status_code=status.HTTP_404_NOT_FOUND,
-             detail='Team not found.'
-             )
-    await teams.delete_team(db, team_id)
+            status_code=status.HTTP_404_NOT_FOUND, detail="Team not found."
+        )
+    await team_service.delete_team(team_id)
